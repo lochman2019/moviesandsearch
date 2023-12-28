@@ -1,0 +1,21 @@
+#h1_1{
+    text-align:center;
+}
+
+.basic{
+    width: 100%;
+    text-align: center;
+}
+
+#img{
+    width: 200px;
+    height: 300px;
+    display: inline-block;
+    alt: 'Coming soon';
+    margin: 30px, 20px, 20px, 30px;
+}
+
+span{
+    width: 50px;
+    height: 30px;
+}

@@ -1,0 +1,79 @@
+# image: python:latest
+# variables:
+#   PROJECT_DIR: "milestone2"
+# # location of manage.py
+# #assumptions - PROJECT_DIR/PROJECT_DIR is the location of settings.py,
+# #PROJECT_DIR is in the root of the repo and does not contain any slashes
+#   DOMAIN: "ec2-18-133-76-121.eu-west-2.compute.amazonaws.com" # a DNS must point DOMAIN to the ip address
+# #$UBUNTU_SERVER , request a domain entry here:
+# #https :// forms.office.com/r/R1iYAikiW4
+#   EMAIL: "admin@$DOMAIN"
+# before_script:
+#   - pip install -r requirements.txt -v # install required pip packages
+#   - python manage.py collectstatic --settings=milestone2.local --noinput
+#   - python manage.py makemigrations plainmap --settings=milestone2.local --noinput
+#   - python manage.py migrate --settings=milestone2.local --noinput
+#   - python manage.py createsuperuser --noinput --username admin --email $EMAIL --settings=milestone2.local
+# test:
+#     script:
+#         - echo "run the tests here"
+#artifact:
+#  script:
+#    - echo "creating artifact"
+#  artifacts:
+#    name: "milestone2"
+#    paths:
+#      - $CI_PROJECT_DIR
+#    exclude:
+#      - $CI_PROJECT_DIR/deploy/*
+# deploy:
+#   before_script:
+#     - 'command -v ssh-agent >/dev/null || (apt install -y openssh)'
+#     - eval $(ssh-agent -s)
+#     - mkdir -p ~/.ssh
+#     - chmod 700 ~/.ssh
+#     - echo "$RSA" | tr -d '\r' > ~/.ssh/id_rsa
+#     - chmod 600 ~/.ssh/id_rsa
+#     - ssh-add
+#     - echo "Host $VM" >> ~/.ssh/config
+#     - echo "    StrictHostKeyChecking no" >> ~/.ssh/config
+#     - chmod 400 ~/.ssh/config
+#     - ssh root@$VM "ufw allow ssh"
+#   script:
+#     - echo "hello, deploy"
+# #postgres
+#     - ssh root@$VM "pg_isready -h localhost -p 5432 || (apt update && apt install -y postgresql postgresql-contrib && service postgresql restart)"
+#     - apt update && apt install -y gettext-base
+#     - envsubst < deploy/db.template > deploy/db.create.script
+#     - scp deploy/db.create.script root@$VM:/tmp/db.create.script
+#     - ssh root@$VM "cd /tmp && sudo -u postgres psql -f /tmp/db.create.script"
+image: python :3.8
+stages:
+  - deploy
+
+variables:
+  REMOTE_DIR: /home/yuxi200253
+deploy:
+  stage: deploy
+  before_script:
+    - sudo apt-get update
+    - sudo apt-get -y install openssh-client
+    - sudo apt-get -y install rsync
+    - sudo apt-get -y install python3-pip
+    - sudo pip3 install virtualenv
+    - eval $(ssh-agent -s)
+    - cat "$RSA" | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 600 ~/.ssh/known_hosts
+
+  script:
+    - tar czf db.sqlite3.tar.gz app/db.sqlite3
+    - rsync -av -e "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -i $RSA" . $VM_USER@$VM:$REMOTE_DIR/
+    - ssh -o StrictHostKeyChecking=no -i $RSA $VM_USER@$VM "cd $REMOTE_DIR/app && virtualenv venv && source venv/bin/activate && pip3 install -r requirements.txt && python3 manage.py migrate --noinput && gunicorn reeltravel.wsgi --bind=127.0.0.1:8000 --daemon "
+    - ssh -o StrictHostKeyChecking=no -i $RSA $VM_USER@$VM "tar xzf $REMOTE_DIR/db.sqlite3.tar.gz -C $REMOTE_DIR/app/ && rm $REMOTE_DIR/db.sqlite3.tar.gz "
+    - ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -i $RSA $VM_USER@$VM "sudo service nginx restart"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "main"'
+    

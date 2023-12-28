@@ -1,0 +1,28 @@
+{% extends "basesearch.html" %}
+
+{% block title %}{{sitename}}{% endblock %}
+{% block content %}
+
+    <form method=POST action="{% url 'searchmovies' %}">
+        {% csrf_token %}
+        <input type="search" placeholder="Search For Movies" aria-label="wordtosearch" name="wordtosearch">
+        <button type="submit">Search</button>
+    </form>
+    {% if wordtosearch %}
+        {% if length > 0 %}
+            <h1>Results for searching movies containing "{{ wordtosearch }}":</h1>
+            <br>
+            {% for movie in movies %}
+                <p><a href="/moviedetails?q={{movie.title}}">{{movie.title}}</a></p>
+                <br>
+                <p>{{movie.description}}</p>
+                <br>
+            {% endfor %}
+        {% else %}
+            <h1>No results found or no input received</h1>
+        {% endif %}
+    {% else %}
+        <h1>No results found or no input received</h1>
+    {% endif %}
+
+{% endblock %}

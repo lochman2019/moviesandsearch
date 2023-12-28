@@ -1,0 +1,104 @@
+{% extends "basesearch.html" %}
+{% load custom_tags %}
+{% block title %}{{movie.title}}- Details{% endblock %}
+
+
+{% block content %}
+<h1>You can search here for specific movies</h1>
+<form method="get">
+    <input type="text" name="q" placeholder="Search movies" value="{{ request.GET.q }}">
+    <button type="submit">Search</button>
+</form>
+
+{% if movie %}
+    <h2>Movie Information of {{movie.title}}:</h2>
+    <table border="1" cellspacing="0" cellpadding="5">
+        <tr>
+            <td>Title</td>
+            <td>{{ movie.title }}</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td>{{ movie.description }}</td>
+        </tr>
+        <tr>
+            <td>Release Date</td>
+            <td>{{ movie.release_date }}</td>
+        </tr>
+        <tr>
+            <td>Genres</td>
+            <td>
+                {% for genre in movie.genres.all %}
+                    {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td>Actors</td>
+            <td>
+                {% for actor in movie.actors.all %}
+                    {{ actor.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                 and more
+            </td>
+        </tr>
+        <tr>
+            <td>Director</td>
+            <td>
+                {% for director in movie.director.all %}
+                    {{ director.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td>Movie Photos</td>
+            <td>
+                {% for photo in movie.moviephoto_set.all %}
+                    <img src="{{ photo.image.url }}" alt="Movie Photo" width="200">
+                {% endfor %}
+            </td>
+        </tr>
+
+    </table>
+
+    <h2>Filming Locations:</h2>
+    {% for location in movie.locations.all %} <!--temporary change locations to location (reverted)-->
+        <h3>{{ location.name }}</h3>
+        {% for photo in location.locationphoto_set.all %}
+            <img src="{{ photo.image.url }}" alt="Location Photo" width="200">
+        {% endfor %}
+    {% endfor %}
+    <h2>User Reviews:</h2>
+    {% if reviews %}
+        <table border="1" cellspacing="0" cellpadding="5">
+            <thead>
+            <tr>
+                <th>Username</th>
+                <th>Review</th>
+                <th>Rating</th>
+                <th>Review Photos</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for review in reviews %}
+                <tr>
+                    <td>{{ review.user.username }}</td>
+                    <td>{{ review.text }}</td>
+                    <td>{{ review.rating }}</td>
+                    <td>
+                        {% for photo in review_photos|get_item:review.id %}
+                            <!--| get_item:review.id -->
+                            <img src="{{ photo.image.url }}" alt="Review Photo" width="100">
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No reviews available.</p>
+    {% endif %}
+{% else %}
+    <p>No movie found related to the search term.</p>
+{% endif %}
+{% endblock %}
